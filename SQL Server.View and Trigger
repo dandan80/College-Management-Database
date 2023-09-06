@@ -1,0 +1,79 @@
+--SQL Server – Create the View
+CREATE VIEW StudentProfessorView
+AS
+SELECT
+P.ProfessorFirstName + ' ' + P.PorfessorLastName AS ProfessorName,
+C.CourseName AS Course,
+S.StudentFirstName + ' ' + S.StudentLastName AS StudentName
+FROM Professor P
+JOIN Course C ON P.CourseID = C.CourseID
+JOIN Course_Enrollment CE ON C.CourseID = CE.CourseID
+JOIN Student S ON CE.StudentID = S.StudentID;
+
+--SQL Server – Delete trigger
+CREATE TRIGGER DeleteTrigger_StudentProfessorView
+ON StudentProfessorView
+INSTEAD OF DELETE
+AS
+BEGIN
+DECLARE @ProfessorName NVARCHAR(255);
+DECLARE @CourseName NVARCHAR(100);
+DECLARE delete_cursor CURSOR FOR
+SELECT ProfessorName, Course
+FROM deleted;
+OPEN delete_cursor;
+FETCH NEXT FROM delete_cursor INTO @ProfessorName, @CourseName;
+WHILE @FETCH_STATUS=0
+BEGIN
+UPDATE StudentProfessorView
+SET ProfessorName = NULL
+WHERE Course = @CourseName;
+FETCH NEXT FROM delete_cursor INTO @ProfessorName, @CourseName;
+END;
+CLOSE delete_cursor;
+DEALLOCATE delete_cursor;
+END;
+
+--SQL Server – Update trigger
+CREATE TRIGGER UpdateTrigger_StudentProfessorView
+ON StudentProfessorView
+INSTEAD OF UPDATE
+AS
+BEGIN
+DECLARE @OldProfessorName NVARCHAR(255);
+DECLARE @OldCourseName NVARCHAR(100);
+DECLARE @OldStudentName NVARCHAR(255);
+DECLARE @NewProfessorName NVARCHAR(255);
+DECLARE @NewCourseName NVARCHAR(100);
+DECLARE @NewStudentName NVARCHAR(255);
+
+    DECLARE update_cursor CURSOR FOR
+    SELECT d.ProfessorName AS OldProfessorName,
+    d.Course AS OldCourseName,
+    d.StudentName AS OldStudentName,
+    i.ProfessorName AS NewProfessorName,
+    i.Course AS NewCourseName,
+    i.StudentName AS NewStudentName
+    FROM deleted d
+    INNER JOIN inserted i ON d.ProfessorName = i.OldProfessorName
+    AND d.Course = i.OldCourseName
+    AND d.StudentName = i.OldStudentName;
+
+    OPEN update_cursor;
+    FETCH NEXT FROM update_cursor INTO @OldProfessorName, @OldCourseName,   @OldStudentName, @NewProfessorName, @NewCourseName, @NewStudentName;
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+UPDATE StudentProfessorView
+SET ProfessorName = @NewProfessorName,
+Course = @NewCourseName,
+StudentName = @NewStudentName
+WHERE ProfessorName = @OldProfessorName
+AND Course = @OldCourseName
+AND StudentName = @OldStudentName;
+
+FETCH NEXT FROM update_cursor INTO @OldProfessorName, @OldCourseName, @OldStudentName, @NewProfessorName, @NewCourseName, @NewStudentName;
+END;
+CLOSE update_cursor;
+DEALLOCATE update_cursor;
+END; 
