@@ -1,0 +1,66 @@
+-- Create Student Table
+CREATE TABLE Student (
+StudentID INT AUTO_INCREMENT PRIMARY KEY,
+StudentFirstName VARCHAR(50) NOT NULL,
+StudentLastName VARCHAR(50) NOT NULL,
+StudentAddress VARCHAR(100) NOT NULL,
+Province VARCHAR(50) NOT NULL,
+Country VARCHAR(50),
+AddressType VARCHAR(50),
+StudentPhone VARCHAR(20),
+PhoneType VARCHAR(50) DEFAULT 'Not provided',
+ProgramID INT,
+FOREIGN KEY (ProgramID) REFERENCES Program(ProgramID)
+);
+
+-- Create Course Table
+CREATE TABLE Course (
+CourseID INT AUTO_INCREMENT PRIMARY KEY,
+CourseName VARCHAR(100) NOT NULL,
+TuitionAmount INT,
+SectionID INT,
+PercentGrade DECIMAL(5,1),
+LetterGrade VARCHAR(2) AS (CASE 
+WHEN PercentGrade >= 90 THEN 'A'
+WHEN PercentGrade >= 80 THEN 'B'
+WHEN PercentGrade >= 70 THEN 'C'
+WHEN PercentGrade >= 60 THEN 'D'
+ELSE 'F'
+),
+ProgramID INT,
+FOREIGN KEY (SectionID) REFERENCES Section(SectionID),
+FOREIGN KEY (ProgramID) REFERENCES Program(ProgramID)
+);
+
+-- Create Professor Table
+CREATE TABLE Professor (
+ProfessorID INT AUTO_INCREMENT PRIMARY KEY,
+ProfessorFirstName VARCHAR(50) NOT NULL,
+ProfessorLastName VARCHAR(50) NOT NULL,
+Saluation VARCHAR(10) DEFAULT 'DR',
+ProgramName VARCHAR(50) DEFAULT 'Data Science',
+CourseID INT,
+SectionID INT,
+FOREIGN KEY (CourseID) REFERENCES Course(CourseID),
+FOREIGN KEY (SectionID) REFERENCES Section(SectionID)
+);
+
+-- Create Program Table
+CREATE TABLE Program (
+ProgramID INT AUTO_INCREMENT PRIMARY KEY,
+ProgramName VARCHAR(50) NOT NULL
+);
+
+-- Create Department Table
+CREATE TABLE Department (
+DepartmentID INT AUTO_INCREMENT PRIMARY KEY,
+DepartmentName VARCHAR(100) NOT NULL,
+Degree VARCHAR(50) NOT NULL,
+ProgramID INT,
+FOREIGN KEY (ProgramID) REFERENCE Porgram(ProgramID)
+);
+-- Create Section Table
+CREATE TABLE Section(
+SectionID INT AUTO_INCREMENT PRIMARY KEY,
+SectionName VARCHAR(50) NOT NULL
+);
