@@ -1,0 +1,67 @@
+SQL Server
+-- Create Student Table
+CREATE TABLE Student (
+StudentID INT IDENTITY(1,1) PRIMARY KEY,
+StudentFirstName NVARCHAR(50) NOT NULL,
+StudentLastName NVARCHAR(50) NOT NULL,
+StudentAddress NVARCHAR(100) NOT NULL,
+Province NVARCHAR(50) NOT NULL,
+Country NVARCHAR(50),
+AddressType NVARCHAR(50),
+StudentPhone NVARCHAR(20),
+PhoneType NVARCHAR(50) DEFAULT 'Not provided',
+ProgramID INT FOREIGN KEY REFERENCES Program(ProgramID)
+);
+
+-- Create Course Table
+CREATE TABLE Course (
+CourseID INT IDENTITY(1,1) PRIMARY KEY,
+CourseName NVARCHAR(100) NOT NULL,
+TuitionAmount INT,
+SectionID INT,
+PercentGrade DECIMAL(5,1),
+LetterGrade NVARCHAR(2) GENERATED ALWAYS AS (CASE 
+WHEN PercentGrade >= 90 THEN 'A'
+WHEN PercentGrade >= 80 THEN 'B'
+WHEN PercentGrade >= 70 THEN 'C'
+WHEN PercentGrade >= 60 THEN 'D'
+ELSE 'F'
+) STORED,
+ProgramID INT,
+FOREIGN KEY (SectionID) REFERENCES Section(SectionID),
+FOREIGN KEY (ProgramID) REFERENCES Program(ProgramID)
+);
+
+-- Create Professor Table
+CREATE TABLE Professor (
+ProfessorID INT IDENTITY(1,1) PRIMARY KEY,
+ProfessorFirstName NVARCHAR(50) NOT NULL,
+ProfessorLastName NVARCHAR(50) NOT NULL,
+Saluation NVARCHAR(10) DEFAULT 'DR',
+ProgramName NVARCHAR(50) DEFAULT 'Data Science',
+CourseID INT,
+SectionID INT,
+FOREIGN KEY (CourseID) REFERENCES Course(CourseID),
+FOREIGN KEY (SectionID) REFERENCES Section(SectionID)
+);
+
+-- Create Program Table
+CREATE TABLE Program (
+ProgramID INT IDENTITY(1,1) PRIMARY KEY,
+ProgramName NVARCHAR(50) NOT NULL
+);
+
+-- Create Department Table
+CREATE TABLE Department (
+DepartmentID INT IDENTITY(1,1) PRIMARY KEY,
+DepartmentName NVARCHAR(100) NOT NULL,
+Degree NVARCHAR(50) NOT NULL,
+ProgramID INT,
+FOREIGN KEY (ProgramID) REFERENCES Program(ProgramID)
+);
+
+-- Create Section Table
+CREATE TABLE Section (
+SectionID INT IDENTITY(1,1) PRIMARY KEY,
+SectionName INT
+);
