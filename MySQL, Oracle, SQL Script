@@ -1,0 +1,197 @@
+CREATE PROCEDURE SectionReassignmentProc
+AS
+BEGIN
+DECLARE @SectionID INT;
+DECLARE @BatchSize INT;
+DECLARE @TotalStudents INT;
+
+SET @SectionID = 1;
+SET @BatchSize = 30;
+
+SELECT @TotalStudents = COUNT(*) FROM Student;
+
+DECLARE @StudentID INT;
+DECLARE student_cursor CURSOR FOR
+SELECT StudentID
+FROM 
+Student
+ORDER BY StudentLastName, StudentFirstName;
+OPEN student_cursor;
+FETCH NEXT FROM student_cursor INTO @StudentID;
+
+WHILE @FETCH_STATUS = 0
+BEGIN
+UPDATE Student
+SET SectionID = @SectionID
+WHERE StudentID = @StudentID;
+
+IF (@ROWCOUNT % @BatchSize) = 0
+BEGIN
+SET @SectionID = @SectionID + 1;
+END
+
+IF @SectionID >@TotalStudents / @BatchSize
+BEGIN
+SET @SectionID = 1;
+END
+FETCH NEXT FROM student_cursor INTO @StudentID;
+END;
+CLOSE student_cursor;
+DEALLOCATE student_cursor;
+END;
+
+SQL Server - Import Database
+USE master;
+ALTER DATABASE CollegeManagementSystem SET USER WITH ROLLBACK IMMEDIATE;
+RESTORE DATABASE CollegeManagementSystem FROM DISK = 'C:\Path\To\ CollegeManagementSystem.bak' WITH REPLACE;
+ALTER DATABASE CollegeManagementSystem SET MULTI_USER;
+
+SQL Server - Export Database
+BACKUP DATABASE CollegeManagementSystem TO DISK = 'C:\Path\To\ CollegeManagementSystem.bak';
+
+SQL Server - Deleta all data
+DELETE FROM Student;
+DELETE FROM Course;
+DELETE FROM Professor;
+DELETE FROM Program;
+DELETE FROM Department;
+DELETE FROM Section;
+
+MySQL - Import Database
+DROP DATABASE IF EXISTS CollegeManagementSystem;
+CREATE DATABASE CollegeManagementSystem;
+USE CollegeManagementSystem; 
+SOURCE 'C:\Path\To\ CollegeManagementSystem.sql';
+
+MySQL- Export Database
+mysqldump -u Username -p CollegeManagementSystem > /path/to/ CollegeManagementSystem.sql
+
+MySQL - Deleta all data
+TRUNCATE TABLE Student;
+TRUNCATE TABLE Course;
+TRUNCATE TABLE Professor;
+TRUNCATE TABLE Program;
+TRUNCATE TABLE Department;
+TRUNCATE TABLE Section;
+
+Oracle - Import Database
+DROP USER Username CASCADE;
+CREATE USER Username IDENTIFIED BY Password;
+GRANT DBA TO Username;
+ALTER USER Username DEFAULT TABLESPACE Tablespace;
+@/path/to/ CollegeManagementSystem.dmp
+
+Oracle - Export Database
+EXPDP Username/Password DIRECTORY=YourDirectory DUMPFILE= CollegeManagementSystem.dmp FULL=Y;
+
+Oracle - Deleta all data
+DELETE FROM Student;
+DELETE FROM Course;
+DELETE FROM Professor;
+DELETE FROM Program;
+DELETE FROM Department;
+DELETE FROM Section;
+
+
+Report
+Program Enrollment Report
+SELECT Program, COUNT(Student.StudentID) AS NumberOfStudents
+FROM Porgram
+LEFT JOIN Student ON Program.ProgramID = Student.ProgramID
+GROUP BY Program
+ORDER BY Program;
+
+Course Enrollment Report
+SELECT Program.ProgramName AS Program, Course.CourseName, 
+COUNT(Student.StudentID) AS NumberOfStudents, 
+Course.TuitionAmount AS Tuition
+FROM Course
+INNER JOIN Section ON Course.CourseID = Section.CourseID
+INNER JOIN Student ON Section.SectionID = Student.SectionID
+INNER JOIN Program ON Course.ProgramID = Program.ProgramID
+GROUP BY Program.ProgramName, Course.CourseName, Course.TuitionAmount
+WITH ROLLUP;
+
+Program/Course Enrollment Report
+SELECT 
+Program.ProgramName AS Program,
+Course.CourseName,
+SUM(CASE WHEN Student.StudentID IS NOT NULL THEN 1 ELSE 0 END) AS NumberOfStudentsForCourse,
+SUM(Course.TuitionAmount) AS CourseTotalTuition,
+COUNT(Student.StudentID) AS NumberOfStudentsForProgram,
+SUM(Course.TuitionAmount) OVER (PARTITION BY Program.ProgramID) AS ProgramTotalTuition
+FROM Course
+LEFT JOIN Section ON Course.CourseID = Section.CourseID
+LEFT JOIN Student ON Section.SectionID = Student.SectionID
+RIGHT JOIN Program ON Course.ProgramID = Program.ProgramID
+GROUP BY Program.ProgramName, Course.CourseName, Program.ProgramID, Course.TuitionAmount
+WITH CUBE;
+
+Course/Program Matrix
+DECLARE @Programs NVARCHAR(MAX);
+DECLARE @Sql NVARCHAR(MAX);
+
+SELECT @Programs = COALESCE(@Programs + ', ', '') + QUOTENAME(ProgramName)
+FROM Program
+ORDER BY ProgramID;
+
+SET @Sql = '
+SELECT CourseName, ' + @Programs + '
+FROM (
+SELECT
+C.CourseName,
+P.ProgramName
+FROM Course C
+INNER JOIN CourseProgram CP ON C.CourseID = CP.CourseID
+INNER JOIN Program P ON CP.ProgramID = P.ProgramID
+) AS Source
+PIVOT (
+COUNT(ProgramName)
+FOR ProgramName IN (' + @Programs + ')
+) AS PivotTable;
+EXEC sp_executesql @Sql;
+
+StudentGradeAverage
+SELECT
+Student.StudentFirstName + ' ' + Student.StudentLastName AS StudentName,
+COUNT(Course.CourseID) AS NumberOfCourses,
+dbo.CalculateGradeAverage(Student.StudentID) AS GradeAverage
+FROM Student
+LEFT JOIN Course_Enrollment ON Student.StudentID = Course_Enrollment.StudentID
+LEFT JOIN Course ON Course_Enrollment.CourseID = Course.CourseID
+GROUP BY Student.StudentID, Student.StudentFirstName, Student.StudentLastName;
+
+
+Request Scripts
+
+Update PhoneType
+ALTER TABLE Student
+ALTER COLUMN PhoneType VARCHAR(50) DEFAULT 'Not provided';
+
+UPDATE Student
+SET PhoneType = 'Not provided'
+WHERE PhoneType = ' ' AND StudentPhone IS NOT NULL;
+
+COMMIT;
+
+Change the Section’s default
+ALTER TABLE Course
+ALTER COLUMN SectionID INT DEFAULT 450;
+
+UPDATE Course
+SET SectionID = 450
+WHERE SectionID < 450;
+
+COMMIT;
+
+Change TuitionAmount to have tow digits after the decimal
+UPDATE Course
+SET TuitionAmount = ROUND(TuitionAmount, 2);
+
+COMMIT;
+
+Change the Course Section column
+UPDATE Course
+SET CourseName = CourseName + ' - Section ' + CAST(SectionID AS VARCHAR(10));
+
+COMMIT;
