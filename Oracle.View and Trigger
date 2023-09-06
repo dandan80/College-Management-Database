@@ -1,0 +1,34 @@
+Oracle – Create the view
+CREATE VIEW StudentProfessorView AS
+SELECT
+P.ProfessorFirstName || ' ' || P.PorfessorLastName AS ProfessorName,
+C.CourseName AS Course,
+S.StudentFirstName || ' ' || S.StudentLastName AS StudentName
+FROM Professor P
+JOIN Course C ON P.CourseID = C.CourseID
+JOIN Course_Enrollment CE ON C.CourseID = CE.CourseID
+JOIN Student S ON CE.StudentID = S.StudentID;
+
+Oracle - update trigger
+CREATE TRIGGER UpdateTrigger_StudentProfessorView
+INSTEAD OF UPDATE ON StudentProfessorView
+FOR EACH ROW
+BEGIN
+UPDATE StudentProfessorView
+SET ProfessorName = :NEW.NewProfessorName,
+Course = :NEW.NewCourseName,
+StudentName = :NEW.NewStudentName
+WHERE ProfessorName = :OLD.OldProfessorName
+AND Course = :OLD.OldCourseName
+AND StudentName = :OLD.OldStudentName;
+END;
+
+Oracle – delete trigger
+CREATE TRIGGER DeleteTrigger_StudentProfessorView
+INSTEAD OF DELETE ON StudentProfessorView
+FOR EACH ROW
+BEGIN
+UPDATE StudentProfessorView
+SET ProfessorName = NULL
+WHERE Course = :OLD.Course;
+END;
